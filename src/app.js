@@ -1,9 +1,10 @@
 const qrcode = require('qrcode-terminal')
 const express = require('express')
-const SendMessage = require('./conversations/sendMessage')
-const CancelCommand = require('./conversations/cancelCommand')
-const Conversation = require('./conversations/Conversation')
-const client = require('./client')
+const Conversation = require('./lib/Conversation')
+const { client } = require('./client')
+const clear = require('./conversations/clear')
+const help = require('./conversations/help')
+const sendMessage = require('./conversations/send-message')
 
 require('dotenv').config()
 
@@ -37,34 +38,9 @@ client.on('disconnected', (reason) => {
 })
 
 client.on('message', async (msg) => {
-    if (msg.body == '!help') {
-        await client.sendMessage(
-            msg.from,
-            `Hai, saya adalah sebuah ChatBot bernama ${process.env.APP_NAME} 👋 Saya dioperasikan dengan mengirimkan perintah melalui !<perintah> yang tersedia.`
-        )
-    }
-})
-
-const states = []
-
-client.on('message', async (msg) => {
-    new Conversation(client, msg, states)
-        .withCommand('!cancel')
-        .action(async (c) => {
-            if (c.complyCommand()) {
-                if (c.state) {
-                    c.destroyState()
-                    await c.msg.reply('Perintah dibatalkan! ❌')
-                } else {
-                    await c.msg.reply(
-                        'Tidak ada perintah yang sedang berlangsung! ❌'
-                    )
-                }
-            }
-        })
-
-    //  new CancelCommand(client, msg, states)
-    new SendMessage(client, msg, states)
+    new Conversation(msg).withCommand('!help').action(help)
+    new Conversation(msg).withCommand('!clear').action(clear)
+    new Conversation(msg).withCommand('!send').action(sendMessage)
 })
 
 client.initialize()
